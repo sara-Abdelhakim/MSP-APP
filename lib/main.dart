@@ -1,17 +1,12 @@
-import 'dart:convert';
-
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:msp_app/ui/colors.dart';
 import 'tabs/events.dart';
 import 'tabs/sessions.dart';
 import 'tabs/gallery.dart';
 import 'tabs/about.dart';
-import 'package:http/http.dart' as http;
 
 const String appTitle = "MSP";
-final GlobalKey<State> myKey = new GlobalKey<State>();
 
 void main() {
 //  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
@@ -45,7 +40,6 @@ class _HomeState extends State<Home> {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        key: myKey,
         appBar: AppBar(
           centerTitle: true,
           title: Text(

@@ -1,23 +1,12 @@
 import 'dart:convert';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:msp_app/ui/colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const baseUrl = "https://my-json-server.typicode.com/salah-rashad/msp-json";
-
-//Future<Event> fetchPost() async {
-//  final response =
-//  await http.get('https://my-json-server.typicode.com/salah-rashad/msp-json/events');
-//
-//  if (response.statusCode == 200) {
-//    // If server returns an OK response, parse the JSON.
-//    return Event.fromJson(json.decode(response.body));
-//  } else {
-//    // If that response was not OK, throw an error.
-//    throw Exception('Failed to load post');
-//  }
-//}
 
 class API {
   static Future getUsers() {
@@ -31,32 +20,58 @@ class Event {
   final String title;
   final String time;
   final String location;
+  final String mapUrl;
   final String description;
   final String image;
   final String formUrl;
   final int price;
+  final List<Topic> topics;
 
   Event({
     this.id,
     this.title,
     this.time,
     this.location,
+    this.mapUrl,
     this.description,
     this.image,
     this.formUrl,
     this.price,
+    this.topics,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    var list = json['topics'] as List;
+    print(list.runtimeType); //returns List<dynamic>
+    List<Topic> topicsList = list.map((i) => Topic.fromJson(i)).toList();
+
     return Event(
       id: json['id'],
       title: json['title'],
       time: json['time'],
       location: json['location'],
+      mapUrl: json['map_url'],
       description: json['description'],
       image: json['image'],
-      formUrl: json['formUrl'],
+      formUrl: json['form_url'],
       price: json['ticket_price'],
+      topics: topicsList,
+    );
+  }
+}
+
+class Topic {
+  final String title;
+  final String sName;
+  final String sDesc;
+
+  Topic({this.title, this.sName, this.sDesc});
+
+  factory Topic.fromJson(Map<String, dynamic> json) {
+    return Topic(
+      title: json['topic_title'],
+      sName: json['speaker_name'],
+      sDesc: json['speaker_desc'],
     );
   }
 }
@@ -86,7 +101,6 @@ class _EventsState extends State<Events> {
   @override
   void initState() {
     super.initState();
-//    event = fetchPost();
     _getEvents();
   }
 
@@ -97,127 +111,288 @@ class _EventsState extends State<Events> {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemBuilder: (BuildContext context, int i) => EventItem(events[i]),
+      padding: EdgeInsets.all(16),
+      itemBuilder: (BuildContext context, int i) => EventItem(events[i], i),
       itemCount: events.length,
     );
   }
 }
-//const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 
 class EventItem extends StatelessWidget {
-  const EventItem(this.event);
+  const EventItem(this.event, this.i);
 
   final Event event;
+  final int i;
 
   Widget _buildEventCard(BuildContext context, Event event) {
-    return ExpandableNotifier(
-        child: ScrollOnExpand(
-      scrollOnExpand: false,
-      scrollOnCollapse: true,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: <Widget>[
-              SizedBox(
-                height: 150,
-                width: MediaQuery.of(context).size.width,
-                child: Container(
-                  child: Image.network(
-                    event.image,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  ),
-                ),
-              ),
-              ScrollOnExpand(
-                scrollOnExpand: true,
-                scrollOnCollapse: false,
-                child: ExpandablePanel(
-                  tapHeaderToExpand: true,
-                  tapBodyToCollapse: true,
-                  headerAlignment: ExpandablePanelHeaderAlignment.center,
-                  header: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            event.title,
-                            style: Theme.of(context).textTheme.body2,
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: purple)),
+      child: Container(
+        padding: EdgeInsets.only(top: 16, bottom: 16),
+        child: ExpansionTile(
+          title: Text(event.title),
+          leading: Image.network(
+            event.image,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+          ),
+          children: <Widget>[
+            Container(
+                padding: EdgeInsets.only(top: 32, right: 16, left: 16),
+                child: Column(
+                  children: <Widget>[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(
+                          width: MediaQuery.of(context).size.width / 4,
+                          child: Text(
+                            "Description".toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black.withOpacity(0.5)),
                           ),
-                          SizedBox(
-                            height: 8,
-                          ),
-                          Text(
-                            event.time,
-                            style: TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      )),
-                  collapsed: Text(
-                    event.description,
-                    softWrap: true,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  expanded: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Padding(
-                          padding: EdgeInsets.only(
-                            bottom: 16,
-                          ),
+                        ),
+                        Flexible(
                           child: Text(
                             event.description,
-                            softWrap: true,
-                            overflow: TextOverflow.fade,
-                          )),
-                    ],
-                  ),
-                  builder: (_, collapsed, expanded) {
-                    return Padding(
-                      padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                      child: Expandable(
-                        collapsed: collapsed,
-                        expanded: expanded,
-                        crossFadePoint: 0,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              ButtonTheme.bar(
-                child: ButtonBar(
-                  alignment: MainAxisAlignment.start,
-                  children: <Widget>[
-                    FlatButton(
-                      child: Text(
-                        'Enroll'.toUpperCase(),
-                        style: TextStyle(color: purple),
-                      ),
-                      onPressed: () {
-                        /* ... */
-                      },
+                            maxLines: 10,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      ],
                     ),
-                    FlatButton(
-                      child: Text(
-                        'Location'.toUpperCase(),
-                        style: TextStyle(color: blue.withOpacity(0.5)),
-                      ),
-                      onPressed: () {
-                        /* ... */
-                      },
+                    SizedBox(
+                      height: 16,
                     ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(
+                          width: MediaQuery.of(context).size.width / 4,
+                          child: Text(
+                            "Date & Time".toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black.withOpacity(0.5)),
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            event.time,
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(
+                      height: 16,
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(
+                          width: MediaQuery.of(context).size.width / 4,
+                          child: Text(
+                            "Location".toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black.withOpacity(0.5)),
+                          ),
+                        ),
+                        Flexible(
+                            child: GestureDetector(
+                          onTap: () => launchURL(
+                              "https://goo.gl/maps/zTFDqmuYrSQ3wQHu9"),
+                          child: Text(
+                            event.location,
+                            style: TextStyle(
+                                color: blue,
+                                decoration: TextDecoration.underline),
+                          ),
+                        ))
+                      ],
+                    ),
+                    SizedBox(
+                      height: 32,
+                    ),
+                    ExpansionTile(
+                      title: Text(
+                        "Topics".toUpperCase(),
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      leading: Icon(Icons.library_books),
+                      backgroundColor: Colors.black.withOpacity(0.1),
+                      children: <Widget>[
+                        ListView.builder(
+                          padding: EdgeInsets.all(16),
+                          itemBuilder: (BuildContext context, int i) =>
+                              _buildTopicItem(context, event, i),
+                          itemCount: event.topics.length,
+                        ),
+                      ],
+                    ),
+                    ButtonTheme(
+                      child: ButtonBar(
+                        alignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          RichText(
+                            text: TextSpan(style: TextStyle(color: Colors.black),
+                              children: [
+                              TextSpan(text: "Ticket Price: ".toUpperCase()),
+                                TextSpan(text: event.price.toString(), style: TextStyle(color: green, fontSize: 18)),
+                                TextSpan(text: " L.E"),
+                              ],
+                            ),
+                          ),
+                          RaisedButton(
+                            colorBrightness: Brightness.dark,
+                            color: purple,
+                            child: Text(
+                              'Enroll'.toUpperCase(),
+                              style: TextStyle(color: white),
+                            ),
+                            onPressed: () => launchURL(event.formUrl),
+                          ),
+                        ],
+                      ),
+                    )
                   ],
-                ),
-              )
-            ],
-          ),
+                ))
+          ],
         ),
       ),
-    ));
+    );
+  }
+
+  Widget _buildTopicItem(BuildContext context, Event event, int index) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: <Widget>[
+          Text(event.topics[index].title),
+          Text(event.topics[index].sName),
+          Text(event.topics[index].sDesc),
+        ],
+      ),
+    );
+
+//        return ExpandableNotifier(
+//          child: ScrollOnExpand(
+//              scrollOnExpand: false,
+//              scrollOnCollapse: true,
+//              child: Padding(
+//                  padding: const EdgeInsets.all(16),
+//                  child: Card(
+//                      clipBehavior: Clip.antiAlias,
+//                      child: Column(
+//                          children: <Widget>[
+//                              SizedBox(
+//                                  height: 150,
+//                                  width: MediaQuery.of(context).size.width,
+//                                  child: Container(
+//                                      child: Image.network(
+//                                          event.image,
+//                                          fit: BoxFit.cover,
+//                                          alignment: Alignment.topCenter,
+//                                      ),
+//                                  ),
+//                              ),
+//                              ScrollOnExpand(
+//                                  scrollOnExpand: true,
+//                                  scrollOnCollapse: false,
+//                                  child: ExpandablePanel(
+//                                      tapHeaderToExpand: true,
+//                                      tapBodyToCollapse: true,
+//                                      headerAlignment: ExpandablePanelHeaderAlignment.center,
+//                                      header: Padding(
+//                                        padding: EdgeInsets.all(16),
+//                                        child: Column(
+//                                            crossAxisAlignment: CrossAxisAlignment.start,
+//                                            children: <Widget>[
+//                                                Text(
+//                                                    event.title,
+//                                                    style: Theme.of(context).textTheme.body2,
+//                                                ),
+//                                                SizedBox(
+//                                                    height: 8,
+//                                                ),
+//                                                Text(
+//                                                    event.time,
+//                                                    style: TextStyle(fontSize: 14),
+//                                                ),
+//                                            ],
+//                                        )),
+//                                      collapsed: Text(
+//                                          event.description,
+//                                          softWrap: true,
+//                                          maxLines: 2,
+//                                          overflow: TextOverflow.ellipsis,
+//                                      ),
+//                                      expanded: Column(
+//                                          crossAxisAlignment: CrossAxisAlignment.start,
+//                                          children: <Widget>[
+//                                              Padding(
+//                                                padding: EdgeInsets.only(
+//                                                    bottom: 16,
+//                                                ),
+//                                                child: Text(
+//                                                    event.description,
+//                                                    softWrap: true,
+//                                                    overflow: TextOverflow.fade,
+//                                                )),
+//                                          ],
+//                                      ),
+//                                      builder: (_, collapsed, expanded) {
+//                                          return Padding(
+//                                              padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+//                                              child: Expandable(
+//                                                  collapsed: collapsed,
+//                                                  expanded: expanded,
+//                                                  crossFadePoint: 0,
+//                                              ),
+//                                          );
+//                                      },
+//                                  ),
+//                              ),
+//                              ButtonTheme.bar(
+//                                  child: ButtonBar(
+//                                      alignment: MainAxisAlignment.start,
+//                                      children: <Widget>[
+//                                          FlatButton(
+//                                              child: Text(
+//                                                  'Enroll'.toUpperCase(),
+//                                                  style: TextStyle(color: purple),
+//                                              ),
+//                                              onPressed: () {
+//                                                  /* ... */
+//                                              },
+//                                          ),
+//                                          FlatButton(
+//                                              child: Text(
+//                                                  'Location'.toUpperCase(),
+//                                                  style: TextStyle(color: blue.withOpacity(0.5)),
+//                                              ),
+//                                              onPressed: () {
+//                                                  /* ... */
+//                                              },
+//                                          ),
+//                                      ],
+//                                  ),
+//                              )
+//                          ],
+//                      ),
+//                  ),
+//              ),
+//          ),
+//        );
+
 //        TextStyle headerStyle = TextStyle(
 //          fontSize: 18.0, fontWeight: FontWeight.w500, color: primaryColor);
 
@@ -274,5 +449,14 @@ class EventItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _buildEventCard(context, event);
+  }
+}
+
+launchURL(String url) async {
+  String mUrl = url;
+  if (await canLaunch(mUrl)) {
+    await launch(mUrl);
+  } else {
+    throw 'Could not launch $mUrl';
   }
 }
