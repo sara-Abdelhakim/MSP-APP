@@ -111,17 +111,16 @@ class _EventsState extends State<Events> {
   Widget build(BuildContext context) {
     return ListView.builder(
       padding: EdgeInsets.all(16),
-      itemBuilder: (BuildContext context, int i) => EventItem(events[i], i),
+      itemBuilder: (BuildContext context, int i) => EventItem(events[i]),
       itemCount: events.length,
     );
   }
 }
 
 class EventItem extends StatelessWidget {
-  const EventItem(this.event, this.i);
+  const EventItem(this.event);
 
   final Event event;
-  final int i;
 
   Widget _buildEventCard(BuildContext context, Event event) {
     return Card(
@@ -133,11 +132,14 @@ class EventItem extends StatelessWidget {
         padding: EdgeInsets.only(top: 16, bottom: 16),
         child: ExpansionTile(
           title: Text(event.title),
-          leading: Image.network(
-            event.image,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(50),
+            child: Image.network(
+              event.image,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+            ),
           ),
           children: <Widget>[
             Container(
@@ -227,14 +229,16 @@ class EventItem extends StatelessWidget {
                         style: TextStyle(fontSize: 14),
                       ),
                       leading: Icon(Icons.library_books),
-                      backgroundColor: Colors.black.withOpacity(0.1),
+                      backgroundColor: Colors.black.withOpacity(0.05),
                       children: <Widget>[
-                        ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemBuilder: (BuildContext context, int i) =>
-                              _buildTopicItem(context, event, i),
-                          itemCount: event.topics.length,
-                        ),
+                        Container(
+                          height: 150,
+                          child: ListView.builder(
+                            itemCount: event.topics.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              return _buildTopicItem(index);
+                            }),
+                        )
                       ],
                     ),
                     ButtonTheme(
@@ -242,10 +246,14 @@ class EventItem extends StatelessWidget {
                         alignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           RichText(
-                            text: TextSpan(style: TextStyle(color: Colors.black),
+                            text: TextSpan(
+                              style: TextStyle(color: Colors.black),
                               children: [
-                              TextSpan(text: "Ticket Price: ".toUpperCase()),
-                                TextSpan(text: event.price.toString(), style: TextStyle(color: green, fontSize: 18)),
+                                TextSpan(text: "Ticket Price: ".toUpperCase()),
+                                TextSpan(
+                                  text: event.price.toString(),
+                                  style:
+                                  TextStyle(color: green, fontSize: 18)),
                                 TextSpan(text: " L.E"),
                               ],
                             ),
@@ -269,15 +277,48 @@ class EventItem extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildTopicItem(BuildContext context, Event event, int index) {
+  
+  Widget _buildTopicItem(int i) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(event.topics[index].title),
-          Text(event.topics[index].sName),
-          Text(event.topics[index].sDesc),
+          Text(
+            (i + 1).toString() + "- " + event.topics[i].title.toUpperCase(),
+            style: TextStyle(fontSize: 18, color: blue),
+          ),
+          SizedBox(
+            height: 8,
+          ),
+          Row(
+            children: <Widget>[
+              SizedBox(
+                width: 25,
+              ),
+              Text(
+                "• " + event.topics[i].sName,
+              ),
+            ],
+          ),
+          Row(
+            children: <Widget>[
+              SizedBox(
+                width: 40,
+              ),
+              Flexible(
+                child: Text(
+                  event.topics[i].sDesc,
+                ),
+              )
+            ],
+          ),
+//          Text(
+//            "     • " + event.topics[i].sName,
+//          ),
+//          Text(
+//            "       " + event.topics[i].sDesc,
+//          ),
         ],
       ),
     );
@@ -285,7 +326,10 @@ class EventItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildEventCard(context, event);
+    return _buildEventCard(
+      context,
+      event,
+    );
   }
 }
 
